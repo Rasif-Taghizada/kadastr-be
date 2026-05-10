@@ -16,8 +16,8 @@ async function runSeeds() {
   await dataSource.initialize();
   console.log('Database connected. Running seeds...');
 
-  // Import and run seeders here:
-  // await new UserSeeder(dataSource).run();
+  const { GisFeatureSeeder } = await import('./gis-feature.seeder');
+  await new GisFeatureSeeder(dataSource).run();
 
   await dataSource.destroy();
   console.log('Seeding complete.');

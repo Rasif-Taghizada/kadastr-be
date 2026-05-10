@@ -1,10 +1,11 @@
-import { IsArray, IsObject, IsString, IsOptional, ValidateNested, ArrayMinSize } from 'class-validator';
+import { IsArray, IsObject, IsString, IsOptional, ValidateNested, ArrayMinSize, Allow } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class GeoJSONGeometryDto {
   @IsString()
   type: string;
 
+  @Allow()
   coordinates: unknown;
 }
 
