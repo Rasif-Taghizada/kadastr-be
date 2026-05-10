@@ -1,0 +1,176 @@
+---
+description: NestJS backend arxitektura qaydaları. Hər kod yazarkən tətbiq et.
+globs: ["src/**/*.ts"]
+alwaysApply: true
+---
+
+# NestJS Backend Arxitektura Qaydaları
+
+## Modul Strukturu
+
+Hər feature modul bu strukturda olmalıdır:
+
+```
+modules/feature/
+  controllers/     → HTTP layer, yalnız request/response
+  services/        → Business logic
+  repositories/    → Bütün TypeORM sorğuları
+  dto/             → feature.request.dto.ts, feature.response.dto.ts
+  converters/      → Entity → DTO (static class)
+  feature.module.ts
+```
+
+## Controller Qaydaları
+
+- Yalnız HTTP layer — service çağır, DTO qaytar
+- Business logic YASAQDIR
+- `@Param('id')` üçün həmişə `ParseUUIDPipe` istifadə et
+- Entity birbaşa qaytarma — `Converter.toDto()` istifadə et
+
+```typescript
+// ✅ Doğru
+@Get(':id')
+findById(@Param('id', ParseUUIDPipe) id: string) {
+  return this.userService.findById(id);
+}
+
+// ❌ Yanlış
+@Get(':id')
+async findById(@Param('id') id: string) {
+  return this.userRepository.findOne({ where: { id } }); // repository controller-də
+}
+```
+
+## Service Qaydaları
+
+- Yalnız business logic
+- DB sorğusu birbaşa yazma — repository çağır
+- Entity return etmə — converter istifadə et
+- `process.env` YASAQDIR
+
+```typescript
+// ✅ Doğru
+async findById(id: string): Promise<UserResponseDto> {
+  const user = await this.userRepository.findById(id);
+  if (!user) throw new NotFoundException('User not found');
+  return UserConverter.toDto(user);
+}
+```
+
+## Repository Qaydaları
+
+- Bütün TypeORM sorğuları yalnız burada
+- `@InjectRepository()` yalnız repository class-da
+- Named metodlar expose et
+
+```typescript
+// ✅ Doğru
+@Injectable()
+export class UserRepository {
+  constructor(
+    @InjectRepository(UserEntity)
+    private readonly repository: Repository<UserEntity>,
+  ) {}
+
+  findById(id: string) {
+    return this.repository.findOne({ where: { id } });
+  }
+}
+
+// ❌ Yanlış — service-də InjectRepository
+@Injectable()
+export class UserService {
+  constructor(
+    @InjectRepository(UserEntity)          // ← YASAQ
+    private readonly repo: Repository<UserEntity>,
+  ) {}
+}
+```
+
+## Converter Qaydaları
+
+- `@Injectable()` YOX — plain static class
+- `toDto` və `toDtoList` static metodları
+
+```typescript
+export class UserConverter {
+  static toDto(entity: UserEntity): UserResponseDto {
+    return { id: entity.id, email: entity.email, ... };
+  }
+  static toDtoList(entities: UserEntity[]): UserResponseDto[] {
+    return entities.map(UserConverter.toDto);
+  }
+}
+```
+
+## Enum Qaydası
+
+Enum-ları entity faylı içində yaratma. `src/constants/enums.ts`-ə yaz.
+
+```typescript
+// ✅ Doğru
+import { UserRole } from '@/constants/enums';
+
+// ❌ Yanlış
+export enum UserRole { ... }  // entity içində
+```
+
+## Config Qaydası
+
+`process.env` heç vaxt service, strategy, guard içində istifadə etmə.
+
+```typescript
+// ✅ Doğru
+constructor(private readonly configService: ConfigService) {}
+this.configService.get<string>('jwt.secret')
+
+// ❌ Yanlış
+process.env.JWT_SECRET
+```
+
+## JWT Qaydası
+
+`jwt.sign()` birbaşa çağırma. `JwtTokenService.sign(user)` istifadə et.
+
+```typescript
+// ✅ Doğru
+return { accessToken: this.jwtTokenService.sign(user) };
+
+// ❌ Yanlış
+return { accessToken: jwt.sign(payload, process.env.JWT_SECRET) };
+```
+
+## Import Path Qaydası
+
+Relative path (`../../`) əvəzinə path alias istifadə et.
+
+```typescript
+// ✅ Doğru
+import { UserEntity } from '@/database/entities';
+import { UserRole } from '@/constants/enums';
+import { PaginationDto } from '@/common/dto/pagination.dto';
+
+// ❌ Yanlış
+import { UserEntity } from '../../../database/entities/user.entity';
+```
+
+## Entity Qaydası
+
+- Hər entity `BaseEntity` extend etməlidir
+- `password` kimi həssas fieldlər: `@Column({ select: false })`
+- Entity-ləri `src/database/entities/index.ts` barrel-dən import et
+
+## Yeni Modul Əlavə Etmə
+
+1. `src/modules/your-module/` yarat
+2. `controllers/`, `services/`, `repositories/`, `dto/`, `converters/` qovluqlarını yarat
+3. Entity varsa → `src/database/entities/` əlavə et, `index.ts`-i yenilə
+4. Enum lazımdırsa → `src/constants/enums.ts`-ə əlavə et
+5. `app.module.ts`-ə import et
+6. `npm run migration:generate`
+
+## Auth
+
+- `JwtAuthGuard` qlobaldır — hər route qorunur
+- Public route üçün `@Public()` decorator
+- Authenticated user üçün controller-də `@CurrentUser()`

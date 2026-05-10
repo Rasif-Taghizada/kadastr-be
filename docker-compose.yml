@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgis/postgis:15-3.3-alpine
+    container_name: kadastr_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-kadastr_db}
+      POSTGRES_USER: ${DB_USER:-kadastr_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-kadastr_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
