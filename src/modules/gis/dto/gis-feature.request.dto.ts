@@ -7,6 +7,10 @@ export class GeoJSONGeometryDto {
 
   @Allow()
   coordinates: unknown;
+
+  @Allow()
+  @IsOptional()
+  bbox?: unknown;
 }
 
 export class GeoJSONPropertiesDto {
@@ -40,6 +44,10 @@ export class GeoJSONFeatureDto {
 
   @IsObject()
   properties: GeoJSONPropertiesDto;
+
+  @Allow()
+  @IsOptional()
+  bbox?: unknown;
 }
 
 export class SaveFeaturesDto {
