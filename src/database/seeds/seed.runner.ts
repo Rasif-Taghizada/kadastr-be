@@ -1,16 +1,30 @@
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const dataSource = new DataSource({
-  type: 'postgres',
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT, 10),
-  username: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  entities: [__dirname + '/../entities/*.entity{.ts,.js}'],
-});
+const ssl = process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {};
+
+const options: DataSourceOptions = process.env.DATABASE_URL
+  ? {
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+      entities: [__dirname + '/../entities/*.entity{.ts,.js}'],
+      synchronize: true,
+      ...ssl,
+    }
+  : {
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: parseInt(process.env.DB_PORT, 10),
+      username: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      entities: [__dirname + '/../entities/*.entity{.ts,.js}'],
+      synchronize: true,
+      ...ssl,
+    };
+
+const dataSource = new DataSource(options);
 
 async function runSeeds() {
   await dataSource.initialize();
