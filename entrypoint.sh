@@ -12,4 +12,4 @@ echo "Running migrations..."
 npm run migration:run
 
 echo "Starting NestJS..."
-node dist/src/main.js
+node dist/main.js
