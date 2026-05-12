@@ -2,7 +2,7 @@
 
 echo "Waiting for postgres..."
 
-until nc -z endirun-pgsql 5432; do
+until nc -z kadastr-pgsql 5432; do
   sleep 2
 done
 

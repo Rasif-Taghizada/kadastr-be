@@ -1,27 +1,27 @@
 version: '3.8'
 
 services:
-  endirun-be:
+  kadastr-api:
     build: .
-    container_name: endirun-be
+    container_name: kadastr-api
     restart: always
-    hostname: endirun-be
+    hostname: kadastr-api
     networks:
-      endirun-be:
+      kadastr-be:
         ipv4_address: 172.43.0.99
     env_file:
       - .env
     depends_on:
-      endirun-pgsql:
+      kadastr-pgsql:
          condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
 
-  endirun-pgsql:
+  kadastr-pgsql:
 #    image: postgres:18.1
     image: postgis/postgis:18-3.6
-    container_name: endirun-pgsql
-    hostname: endirun-pgsql
+    container_name: kadastr-pgsql
+    hostname: kadastr-pgsql
     restart: always
     environment:
       TZ: '${APP_TIME_ZONE}'
@@ -35,15 +35,15 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      endirun-be:
+      kadastr-be:
         ipv4_address: 172.43.0.100
     volumes:
-      - 'endirun-pgsql:/var/lib/postgresql/'
+      - 'kadastr-pgsql:/var/lib/postgresql/'
 networks:
-  endirun-be:
+  kadastr-be:
     ipam:
       config:
         - subnet: 172.43.0.96/28
 
 volumes:
-  endirun-pgsql:
+  kadastr-pgsql:
