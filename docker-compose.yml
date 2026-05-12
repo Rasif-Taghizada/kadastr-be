@@ -1,16 +1,50 @@
+version: '3.8'
+
 services:
-  postgres:
-    image: postgis/postgis:15-3.3-alpine
-    container_name: kadastr_postgres
-    environment:
-      POSTGRES_DB: ${DB_NAME:-kadastr_db}
-      POSTGRES_USER: ${DB_USER:-kadastr_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-kadastr_password}
+  endirun-be:
+    build: .
+    container_name: endirun-be
+    restart: always
+    hostname: endirun-be
+    networks:
+      endirun-be:
+        ipv4_address: 172.41.0.99
+    env_file:
+      - .env
+    depends_on:
+      endirun-pgsql:
+         condition: service_healthy
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - '5432:5432'
-    restart: unless-stopped
+      - ./uploads:/app/uploads
+
+  endirun-pgsql:
+#    image: postgres:18.1
+    image: postgis/postgis:18-3.6
+    container_name: endirun-pgsql
+    hostname: endirun-pgsql
+    restart: always
+    environment:
+      TZ: '${APP_TIME_ZONE}'
+      POSTGRES_DB: '${DB_NAME}'
+      POSTGRES_USER: '${DB_USERNAME}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD}'
+      DB_SYNCHRONIZE: '${DB_SYNCHRONIZE}'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      endirun-be:
+        ipv4_address: 172.41.0.100
+    volumes:
+      - 'endirun-pgsql:/var/lib/postgresql/'
+networks:
+  endirun-be:
+    ipam:
+      config:
+        - subnet: 172.41.0.96/28
 
 volumes:
-  postgres_data:
+  endirun-pgsql:
+s
